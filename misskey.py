@@ -22,14 +22,15 @@ def _get_raw_notes(site: str, user_id: str):
     }
     req_header = {
         "User-Agent": "MisskeyTelegramForwarder",
-        "Accept-Encoding": "gzip, deflate, br"
+        'Content-type':'application/json', 
+        'Accept':'*/*'
     }
     res = requests.post(
         url=f"{site}/api/users/notes",
         headers=req_header,
         data=json.dumps(req_body)
     )
-    return res.json()
+    return json.loads(res.content)
 
 
 def get_notes(site: str, user_id: str) -> dict:
