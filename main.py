@@ -5,6 +5,7 @@ from schedule import every, repeat, run_pending
 from environs import Env
 from datetime import *
 from time import sleep
+import asyncio
 
 
 env = Env()
@@ -25,29 +26,30 @@ bot = telegram.Bot(token=TOKEN)
 def get_medias(files):
     medias = []
     for file in files:
-        if file.type.startswith("image"):
+        if file["type"].startswith("image"):
             medias.append(
                 telegram.InputMediaPhoto(
-                    media=file.url
+                    media=file["url"]
                 )
             )
-        elif file.type.startswith("video"):
+        elif file["type"].startswith("video"):
             medias.append(
                 telegram.InputMediaVideo(
-                    media=file.url
+                    media=file["url"]
                 )
             )
         else:
             medias.append(
                 telegram.InputMediaDocument(
-                    media=file.url
+                    media=file["url"]
                 )
             )
     return medias
 
 
 @repeat(every(INTERVAL).seconds)
-def forward_new_notes(bot: telegram.Bot):
+async def forward_new_notes(bot: telegram.Bot):
+    global LATEST_NOTE_TIME
     notes = misskey.get_notes(
         site=HOST,
         user_id=USERID,
@@ -57,25 +59,28 @@ def forward_new_notes(bot: telegram.Bot):
         if n.createdAt > LATEST_NOTE_TIME:
             # forward
             if len(n.files) == 0:
-                bot.send_message(
-                    chat_id=env.str("CHATID"),
-                    text=n.text
+                await bot.send_message(
+                    chat_id=CHANNEL_ID,
+                    text=n.text,
+                    parse_mode=telegram.constants.ParseMode("HTML")
                 )
                 logging.info(
                     f"Forwarded a text note, content: {n.text[:10]}...")
             else:
                 medias = get_medias(n.files)
-                bot.send_media_group(
-                    chat_id=env.str("CHATID"),
-                    media=medias
+                await bot.send_media_group(
+                    chat_id=CHANNEL_ID,
+                    media=medias,
+                    caption=n.text,
+                    parse_mode=telegram.constants.ParseMode("HTML")
                 )
                 logging.info(
                     f"Forwarded a note with media, content: {n.text[:10]}... with {len(medias)} medias")
             LATEST_NOTE_TIME = n.createdAt
 
 
-def main():
-    forward_new_notes(bot)
+async def main():
+    await forward_new_notes(bot)
     logging.info("----- Bot started -----")
     while True:
         run_pending()
@@ -84,4 +89,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
