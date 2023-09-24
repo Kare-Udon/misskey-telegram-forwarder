@@ -1,0 +1,15 @@
+version: "3"
+
+services:
+  misskey-telegram-forwarder:
+    image: laoliu233/misskey-telegram-forwarder:latest
+    # build: .
+    env_file:
+      - ".env"
+    restart: unless-stopped
+    environment:
+      - BOT_TOKEN=
+      - HOST=
+      - USERID=
+      - CHANNEL_ID=
+      - INTERVAL=
