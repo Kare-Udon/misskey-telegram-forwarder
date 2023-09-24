@@ -7,9 +7,3 @@ services:
     env_file:
       - ".env"
     restart: unless-stopped
-    environment:
-      - BOT_TOKEN=
-      - HOST=
-      - USERID=
-      - CHANNEL_ID=
-      - INTERVAL=
