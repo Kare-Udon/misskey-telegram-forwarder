@@ -1,5 +1,5 @@
 python-telegram-bot~=20.5
 requests~=2.31
-dateutil~=2.8.2
+python-dateutil~=2.8.2
 environs~=9.5.0
 schedule~=1.2.0
