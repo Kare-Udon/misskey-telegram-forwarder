@@ -8,6 +8,9 @@ from time import sleep
 import asyncio
 
 
+logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s',
+                    level=logging.INFO)
+
 env = Env()
 # Read .env into os.environ
 env.read_env()
