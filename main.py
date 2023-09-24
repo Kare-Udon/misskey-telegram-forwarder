@@ -50,7 +50,7 @@ def get_medias(files):
     return medias
 
 
-@repeat(every(INTERVAL).seconds)
+@repeat(every(INTERVAL).seconds, bot)
 async def forward_new_notes(bot: telegram.Bot):
     global LATEST_NOTE_TIME
     notes = misskey.get_notes(
@@ -83,7 +83,6 @@ async def forward_new_notes(bot: telegram.Bot):
 
 
 async def main():
-    await forward_new_notes(bot)
     logging.info("----- Bot started -----")
     while True:
         run_pending()
