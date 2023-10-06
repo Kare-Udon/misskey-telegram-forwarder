@@ -74,6 +74,7 @@ async def forward_new_notes(bot: telegram.Bot):
     # forward new notes
     for n in reversed(notes):
         if n.createdAt > LATEST_NOTE_TIME:
+            LATEST_NOTE_TIME = n.createdAt
             # forward
             if len(n.files) == 0:
                 await bot.send_message(
@@ -107,7 +108,6 @@ async def forward_new_notes(bot: telegram.Bot):
                     if success:
                         logging.info(
                             f"Forwarded a note with media, content: {n.text[:10]}... with {len(medias)} medias")
-                LATEST_NOTE_TIME = n.createdAt
 
 
 async def main():
