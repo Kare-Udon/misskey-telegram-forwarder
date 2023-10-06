@@ -15,19 +15,33 @@ async def _download_video(url: str, temp_dir: str):
     return f_name
 
 
-async def transfer_video(url: str, temp_dir: str):
+async def transfer_video(url: str, temp_dir: str, compression: bool):
     video = await _download_video(url, temp_dir)
     transfered = Path(temp_dir, f"{uuid.uuid4()}.mp4")
     open(transfered, "xb")
-    ffmpeg = (
-        FFmpeg()
-        .option("y")
-        .input(video)
-        .output(
-            transfered,
-            {"codec:v": "libx264"},
-            crf=24,
+    if compression:
+        ffmpeg = (
+            FFmpeg()
+            .option("y")
+            .input(video)
+            .output(
+                transfered,
+                {"codec:v": "libx264"},
+                crf=23.5,
+            )
         )
-    )
+    else:
+        ffmpeg = (
+            FFmpeg()
+            .option("y")
+            .input(video)
+            .output(
+                transfered,
+                {
+                    "codec:v": "copy",
+                    "codec:a": "copy",
+                },
+            )
+        )
     await ffmpeg.execute()
     return transfered

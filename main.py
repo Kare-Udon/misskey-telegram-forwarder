@@ -21,6 +21,8 @@ HOST = env.str("HOST", "https://misskey.io")
 USERID = env.str("USERID")
 CHANNEL_ID = env.str("CHANNEL_ID")
 INTERVAL = env.int("INTERVAL", 300)
+COMPRESSION = env.bool("COMPRESSION", True)
+
 
 LATEST_NOTE_TIME = datetime.now().replace(tzinfo=timezone.utc)
 
@@ -38,7 +40,7 @@ async def get_medias(files, temp_dir):
             )
         elif file["type"].startswith("video"):
             try:
-                transfered = await utils.transfer_video(file["url"], temp_dir)
+                transfered = await utils.transfer_video(file["url"], temp_dir, COMPRESSION)
             except:
                 logging.error("Failed to transfer video. Falling back...")
                 medias.append(
@@ -84,16 +86,21 @@ async def forward_new_notes(bot: telegram.Bot):
             else:
                 with tempfile.TemporaryDirectory() as temp_dir:
                     medias = await get_medias(n.files, temp_dir)
-                    try:
-                        await bot.send_media_group(
-                            chat_id=CHANNEL_ID,
-                            media=medias,
-                            caption=n.text,
-                            parse_mode=telegram.constants.ParseMode("HTML"),
-                        )
-                    except asyncio.TimeoutError:
-                        logging.error("Send media group timeout!")
-                        continue
+                    for i in range(3):
+                        try:
+                            await bot.send_media_group(
+                                chat_id=CHANNEL_ID,
+                                media=medias,
+                                caption=n.text,
+                                parse_mode=telegram.constants.ParseMode("HTML"),
+                            )
+                        except asyncio.TimeoutError:
+                            logging.warning(
+                                f"Upload media group timeout! Retrying for {i} time(s).")
+                            if i == 3:
+                                logging.error(
+                                    f"Failed to upload media! Content: {n.text[:10]}... with {len(medias)} medias")
+                            continue
                     logging.info(
                         f"Forwarded a note with media, content: {n.text[:10]}... with {len(medias)} medias")
                 LATEST_NOTE_TIME = n.createdAt
