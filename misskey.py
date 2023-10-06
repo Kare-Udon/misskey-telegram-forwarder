@@ -38,15 +38,31 @@ def get_notes(site: str, user_id: str) -> dict:
     # do some clean up
     notes: [Note] = []
     for n in res:
-        note = Note()
-        note.createdAt = parser.parse(n["createdAt"])
-        note.text = n["text"]
-        note.files = []
-        for f in n["files"]:
-            file = {
-                "type": f["type"],
-                "url": f["url"]
-            }
-            note.files.append(file)
-        notes.append(note)
+        if "renote" in n:
+            # Handle renote
+            note = Note()
+            renote = n['renote']
+            note.createdAt = parser.parse(n["createdAt"])
+            note.text = f"<b>Renote from user {renote['user']['name']}</b>:\n{renote['text']}"
+            note.files = []
+            for f in renote["files"]:
+                file = {
+                    "type": f["type"],
+                    "url": f["url"]
+                }
+                note.files.append(file)
+            notes.append(note)
+        else:
+            # normal note
+            note = Note()
+            note.createdAt = parser.parse(n["createdAt"])
+            note.text = n["text"]
+            note.files = []
+            for f in n["files"]:
+                file = {
+                    "type": f["type"],
+                    "url": f["url"]
+                }
+                note.files.append(file)
+            notes.append(note)
     return notes

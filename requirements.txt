@@ -2,3 +2,4 @@ python-telegram-bot~=20.5
 requests~=2.31
 python-dateutil~=2.8.2
 environs~=9.5.0
+python-ffmpeg~=2.0.4

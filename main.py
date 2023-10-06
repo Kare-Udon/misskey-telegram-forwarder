@@ -1,6 +1,8 @@
 import misskey
+import utils
 import logging
 import telegram
+import tempfile
 from environs import Env
 from datetime import *
 from time import sleep
@@ -19,13 +21,15 @@ HOST = env.str("HOST", "https://misskey.io")
 USERID = env.str("USERID")
 CHANNEL_ID = env.str("CHANNEL_ID")
 INTERVAL = env.int("INTERVAL", 300)
+COMPRESSION = env.bool("COMPRESSION", True)
+
 
 LATEST_NOTE_TIME = datetime.now().replace(tzinfo=timezone.utc)
 
 bot = telegram.Bot(token=TOKEN)
 
 
-def get_medias(files):
+async def get_medias(files, temp_dir):
     medias = []
     for file in files:
         if file["type"].startswith("image"):
@@ -35,9 +39,21 @@ def get_medias(files):
                 )
             )
         elif file["type"].startswith("video"):
+            try:
+                transfered = await utils.transfer_video(file["url"], temp_dir, COMPRESSION)
+            except:
+                logging.error("Failed to transfer video. Falling back...")
+                medias.append(
+                telegram.InputMediaVideo(
+                    file["url"]
+                    )
+                )
+                continue
+
+            vf = open(transfered, "rb")
             medias.append(
                 telegram.InputMediaVideo(
-                    media=file["url"]
+                    vf
                 )
             )
         else:
@@ -68,16 +84,30 @@ async def forward_new_notes(bot: telegram.Bot):
                 logging.info(
                     f"Forwarded a text note, content: {n.text[:10]}...")
             else:
-                medias = get_medias(n.files)
-                await bot.send_media_group(
-                    chat_id=CHANNEL_ID,
-                    media=medias,
-                    caption=n.text,
-                    parse_mode=telegram.constants.ParseMode("HTML")
-                )
-                logging.info(
-                    f"Forwarded a note with media, content: {n.text[:10]}... with {len(medias)} medias")
-            LATEST_NOTE_TIME = n.createdAt
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    medias = await get_medias(n.files, temp_dir)
+                    success = False
+                    for i in range(3):
+                        try:
+                            await bot.send_media_group(
+                                chat_id=CHANNEL_ID,
+                                media=medias,
+                                caption=n.text,
+                                parse_mode=telegram.constants.ParseMode("HTML"),
+                            )
+                            success = True
+                            break
+                        except asyncio.TimeoutError:
+                            logging.warning(
+                                f"Upload media group timeout! Retrying for {i} time(s).")
+                            if i == 3:
+                                logging.error(
+                                    f"Failed to upload media! Content: {n.text[:10]}... with {len(medias)} medias")
+                            continue
+                    if success:
+                        logging.info(
+                            f"Forwarded a note with media, content: {n.text[:10]}... with {len(medias)} medias")
+                LATEST_NOTE_TIME = n.createdAt
 
 
 async def main():
