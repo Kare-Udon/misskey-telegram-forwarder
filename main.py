@@ -86,6 +86,7 @@ async def forward_new_notes(bot: telegram.Bot):
             else:
                 with tempfile.TemporaryDirectory() as temp_dir:
                     medias = await get_medias(n.files, temp_dir)
+                    success = False
                     for i in range(3):
                         try:
                             await bot.send_media_group(
@@ -94,6 +95,8 @@ async def forward_new_notes(bot: telegram.Bot):
                                 caption=n.text,
                                 parse_mode=telegram.constants.ParseMode("HTML"),
                             )
+                            success = True
+                            break
                         except asyncio.TimeoutError:
                             logging.warning(
                                 f"Upload media group timeout! Retrying for {i} time(s).")
@@ -101,8 +104,9 @@ async def forward_new_notes(bot: telegram.Bot):
                                 logging.error(
                                     f"Failed to upload media! Content: {n.text[:10]}... with {len(medias)} medias")
                             continue
-                    logging.info(
-                        f"Forwarded a note with media, content: {n.text[:10]}... with {len(medias)} medias")
+                    if success:
+                        logging.info(
+                            f"Forwarded a note with media, content: {n.text[:10]}... with {len(medias)} medias")
                 LATEST_NOTE_TIME = n.createdAt
 
 
